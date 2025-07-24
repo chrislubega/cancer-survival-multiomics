@@ -1,0 +1,24 @@
+library(survival)
+library(survminer)
+
+# Fit KM model
+km_fit <- survfit(Surv(OS.time, OS) ~ cluster1, data = clin_data)
+
+# Plot KM curve
+ggsurvplot(
+  km_fit, data = clin_data,
+  pval = TRUE, risk.table = F,
+  title = "Overall Survival by Molecular Subtype",
+  xlab = "Time (days)", ylab = "Survival Probability",
+  palette = "Dark2"
+)
+
+cox_uni <- coxph(Surv(OS.time, OS) ~ cluster, data = clin_data)
+summary(cox_uni)
+
+
+cox_multi <- coxph(Surv(OS.time, OS) ~ cluster + age_at_index.demographic
+                   , data = clin_data)
+summary(cox_multi)
+
+

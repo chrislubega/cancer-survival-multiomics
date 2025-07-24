@@ -1,0 +1,22 @@
+library(readr)
+library(tidyverse)
+geneids <- expression[[1]]
+expr_t <- expression[,-1]|>t() |> as.data.frame()
+colnames(expr_t) <- geneids
+expr_t$sample <- rownames(expr_t)
+Data1 <- inner_join(Clinical,expr_t, by="sample")
+survival <- read_tsv("data/TCGA-SARC.survival.tsv")
+Data2 <- inner_join(survival,Data1, by ="sample")
+
+write.csv(Data2, "merged.csv")
+
+Data3 <- Data2%>%
+  mutate(across(6:15,as.factor))
+
+ggplot(Data3, aes(x = OS.time, fill = as.factor(OS))) +
+  geom_histogram(bins = 30, alpha = 0.7, position = "identity") +
+  labs(title = "Distribution of Overall Survival Time",
+       x = "OS Time (days)", fill = "Event (0=censored, 1=death)") +
+  theme_minimal()
+
+

@@ -1,0 +1,61 @@
+# Load libraries
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(matrixStats)
+library(ggfortify)
+library(FactoMineR)
+library(factoextra)
+
+# Load dataset
+data <- read.csv("data/sarc_expr_clin_merged.csv")
+
+# Separate clinical and expression data
+clin_vars <- c("sample", "OS.time", "OS", "_PATIENT", "age_at_index.demographic",
+               "disease_type", "primary_site", "race.demographic", "gender.demographic",
+               "ethnicity.demographic", "vital_status.demographic",
+               "prior_malignancy.diagnoses", "treatment.diagnoses",
+               "tumor_descriptor.samples", "oct_embedded.samples")
+
+clin_data <- Data3[, clin_vars]
+expr_data <- Data3[, !(names(Data3) %in% clin_vars)]
+
+# Age distribution
+ggplot(clin_data, aes(x = age_at_index.demographic)) +
+  geom_histogram(bins = 40, fill = "#3f8eb5", color = "black") +
+  theme_minimal() +
+  labs(title = "Age Distribution", x = "Age", y = "Count")
+
+# OS Time by Gender
+ggplot(clin_data, aes(x = gender.demographic, y = OS.time, fill = gender.demographic)) +
+  geom_boxplot() +
+  theme_minimal() +
+  labs(title = "Overall Survival Time by Gender")
+
+# ----------------------------
+# Feature Selection
+# ----------------------------
+
+# Filter low variance genes
+expr_mat <- as.matrix(expr_data)
+gene_vars <- rowVars(t(expr_mat))  # variance across samples
+
+# Keep top N variable genes (e.g. 1000)
+top_n <- 1000
+top_genes_idx <- order(gene_vars, decreasing = TRUE)[1:top_n]
+expr_top <- expr_mat[, top_genes_idx]
+
+# Save for unsupervised analysis
+write.csv(expr_top, "data/top_variable_genes.csv", row.names = FALSE)
+dim(expr_top)
+
+# ----------------------------
+# PCA for Visualization
+# ----------------------------
+
+# Combine PCA and clinical for visualization
+pca_res <- prcomp(expr_top, scale. = TRUE)
+autoplot(pca_res, data = clin_data, colour = "disease_type") +
+  theme_minimal() +
+  labs(title = "PCA of Top 1000 Variable Genes")
+

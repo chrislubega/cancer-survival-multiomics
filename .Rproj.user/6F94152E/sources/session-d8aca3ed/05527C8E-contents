@@ -1,0 +1,47 @@
+library(tidyverse)
+library(survival)
+library(survminer)
+library(Rtsne)
+library(FactoMineR)
+library(factoextra)
+library(NMF)
+library(cluster)
+
+
+# --- t-SNE Visualization ---
+set.seed(42)
+tsne_res <- Rtsne(expr_top, perplexity = 30)
+tsne_df <- as.data.frame(tsne_res$Y)
+colnames(tsne_df) <- c("tSNE1", "tSNE2")
+
+# --- Clustering ---
+# Choose number of clusters k
+k <- 3  # Can be optimized using silhouette or elbow method
+
+# KMeans Clustering
+set.seed(123)
+kmeans_res <- kmeans(expr_top, centers = 3)
+cluster_labels <- kmeans_res$cluster
+
+# Alternatively: NMF
+nmf_res <- nmf(expr_top_t, rank = k, method = "brunet", nrun = 30)
+cluster_labels1 <- predict(nmf_res)
+
+# Add cluster info to clinical data
+clin_data$cluster <- factor(cluster_labels[Data3$sample %in% clin_data$sample])
+
+# Align by sample ID (rownames of expr_top_t == names(cluster_labels))
+sample_match <- match(clin_data$sample, rownames(expr_top_t))
+clin_data$cluster <- factor(cluster_labels[sample_match])
+
+
+# --- Visualize Clusters in t-SNE ---
+tsne_df$cluster <- clin_data$cluster
+ggplot(tsne_df, aes(x = tSNE1, y = tSNE2, color = cluster)) +
+  geom_point(size = 3) +
+  theme_minimal() +
+  labs(title = "t-SNE of Molecular Subtypes (Clusters)")
+
+# Save cluster-annotated expression and clinical data
+# write.csv(expr_top, "top_variable_genes.csv")
+write.csv(clin_data, "clinical_with_clusters1.csv")
